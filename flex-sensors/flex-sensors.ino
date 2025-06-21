@@ -13,23 +13,24 @@ void setup() {
 }
 
 void loop() {
-if (digitalRead(BUTTON_PIN) == LOW) {
+
+  if (digitalRead(5) == LOW) {
     delay(50);  // debounce
     unsigned long start = millis();
     while (millis() - start < 2000) { // 2 seconds
       static unsigned long lastSent = 0;
       if (millis() - lastSent >= 50) { // 20Hz
         lastSent = millis();
-        Serial.print(analogRead(A0)); Serial.print(",");
-        Serial.print(analogRead(A1)); Serial.print(",");
-        Serial.print(analogRead(A2)); Serial.print(",");
-        Serial.print(analogRead(A3)); Serial.print(",");
-        Serial.println(analogRead(A4));
+        Serial.print(analogRead(sensor1)); Serial.print(",");
+        Serial.print(analogRead(sensor2)); Serial.print(",");
+        Serial.print(analogRead(sensor3)); Serial.print(",");
+        Serial.print(analogRead(sensor4)); Serial.print(",");
+        Serial.println(analogRead(sensor5));
       }
     }
 
--    Serial.println("DONE");
-    delay(300);  -
-
+    Serial.println("DONE");
+    delay(300);  
+  }
 
 }

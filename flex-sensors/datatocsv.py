@@ -3,73 +3,89 @@ import time
 import pandas as pd
 import os
 
-# Config
-COM_PORT = 'COM3'
+# === CONFIGURATION ===
+COM_PORT = 'COM3'             # Replace with your actual port
 BAUD_RATE = 115200
-DURATION = 2.0
-SAMPLE_RATE = 20
+DURATION = 2.0                # seconds
+SAMPLE_RATE = 20             # Hz
 DATA_FILE = 'all_data.csv'
 
-# Set up serial
+# === SETUP ===
 ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=1)
-print(f"Listening on {COM_PORT}...")
+print(f"[Connected] Listening on {COM_PORT} at {BAUD_RATE} baud.")
+
+# Get user label once
+while True:
+    letter = input("Enter the letter you're recording: ").strip().upper()
+    if len(letter) == 1 and letter.isalpha():
+        break
+    else:
+        print("Please enter a single alphabetical letter (A-Z).")
 
 # Initialize sample_id
 if os.path.exists(DATA_FILE):
-    df_existing = pd.read_csv(DATA_FILE)
-    sample_id = df_existing['sample_id'].max() + 1
+    existing_data = pd.read_csv(DATA_FILE)
+    sample_id = existing_data['sample_id'].max() + 1
 else:
     with open(DATA_FILE, 'w') as f:
         f.write('flex1,flex2,flex3,flex4,flex5,label,sample_id\n')
     sample_id = 0
 
-def record_flex_data(label):
-    global sample_id
-    data = []
-    print(f"Recording for letter '{label}' (sample #{sample_id})...")
+# === MAIN LOOP: Wait for data stream repeatedly ===
+try:
+    print(f"Ready to record letter '{letter}'. Press the button on your glove to start recording.")
 
-    start_time = time.time()
-    while time.time() - start_time < DURATION:
+    last_record_time = 0  # Track time of last capture
+
+    while True:
         if ser.in_waiting:
             line = ser.readline().decode(errors='ignore').strip()
-            if line == "DONE":
-                break
+
+            # Only proceed if enough time has passed since last recording
+            if time.time() - last_record_time < 2.5:
+                continue  # skip any leftover data too soon
+
+            # Start only if valid flex data
             parts = line.split(',')
             if len(parts) == 5:
                 try:
-                    row = [float(x) for x in parts]
-                    row += [label, sample_id]
-                    data.append(row)
+                    float_parts = [float(x) for x in parts]
                 except ValueError:
                     continue
-        time.sleep(1 / SAMPLE_RATE)
 
-    df = pd.DataFrame(data, columns=['flex1', 'flex2', 'flex3', 'flex4', 'flex5', 'label', 'sample_id'])
-    df.to_csv(DATA_FILE, mode='a', header=False, index=False)
-    print(f"Saved {len(df)} rows for '{label}' (sample_id {sample_id}).\n")
-    sample_id += 1
+                # Begin Recording
+                print(f"[Recording] Sample #{sample_id} started...")
+                data = [float_parts]
+                start_time = time.time()
 
-# Main Loop
-try:
-    while True:
-        letter = input("Enter the letter you're recording: ").strip().upper()
-        if not (len(letter) == 1 and letter.isalpha()):
-            print("Invalid input. Try again.")
-            continue
-        print(f"Now press the glove button to record letter '{letter}'...")
-        
-        # Wait for data stream to begin
-        while True:
-            if ser.in_waiting:
-                first_line = ser.readline().decode(errors='ignore').strip()
-                if len(first_line.split(',')) == 5:
-                    print("Data stream detected. Starting capture.")
-                    data_row = [float(x) for x in first_line.split(',')]
-                    break
-        
-        # Include first line and then continue capture
-        record_flex_data(letter)
+                while time.time() - start_time < DURATION:
+                    if ser.in_waiting:
+                        line = ser.readline().decode(errors='ignore').strip()
+                        parts = line.split(',')
+                        if len(parts) == 5:
+                            try:
+                                data.append([float(x) for x in parts])
+                            except ValueError:
+                                continue
+                    time.sleep(1 / SAMPLE_RATE)
+
+                # Save to CSV
+                df = pd.DataFrame(data, columns=[f'flex{i+1}' for i in range(5)])
+                df['label'] = letter
+                df['sample_id'] = sample_id
+                df.to_csv(DATA_FILE, mode='a', header=False, index=False)
+
+                print(f"[Saved] Sample #{sample_id} ({len(df)} rows) for letter '{letter}'.")
+                sample_id += 1
+                last_record_time = time.time()
+
+                # Clear buffer to prevent immediate false trigger
+                ser.reset_input_buffer()
+                print("Waiting for next button press...\n")
+
 except KeyboardInterrupt:
-    print("Exiting.")
+    print("Program interrupted by user. Exiting.")
+
 finally:
     ser.close()
+    print("Serial port closed.")
