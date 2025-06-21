@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import './index.css'
 import HeroMain from './assets/components/Hero/HeroMain'
+import Reviews from './assets/components/Review/Reviews'
 
 function getRandom(min, max) {
   return Math.random() * (max - min) + min;
@@ -69,12 +70,11 @@ function Stars({ count = 20 }) {
 
 function App() {
   return (
-    <div className="min-h-screen w-full bg-star-gradient bg-star-grid relative overflow-hidden">
+    <div className="w-full bg-star-gradient bg-star-grid relative h-screen overflow-y-auto">
       <div className="grid-overlay"></div>
       <Stars count={30} />
-      <div>
-        <HeroMain />
-      </div>
+      <HeroMain />
+      <Reviews />
     </div>
   );
 }

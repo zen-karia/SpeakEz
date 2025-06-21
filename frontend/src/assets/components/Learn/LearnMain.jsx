@@ -13,7 +13,6 @@ const LearnMain = () => {
   const [webcamActive1, setWebcamActive1] = useState(false);
   const [webcamActive2, setWebcamActive2] = useState(false);
 
-  // Example: Capture a frame when capturing is true
   const captureFrame = useCallback(() => {
     if (webcamActive1 && webcamRef1.current) {
       const imageSrc = webcamRef1.current.getScreenshot();
@@ -35,7 +34,7 @@ const LearnMain = () => {
           className="w-[400px] h-[300px] mt-2"
         />
       </div>
-      <div className="flex flex-row gap-8 justify-center w-full gap-40">
+      <div className="flex flex-row gap-8 justify-center w-full gap-100">
         <div className="flex flex-col items-center relative">
           <span className="font-semibold mb-2">Letter Recognition</span>
           {!webcamActive1 ? (
