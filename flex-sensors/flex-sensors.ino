@@ -1,11 +1,12 @@
-int sensor1;
-int sensor2;
-int sensor3;
-int sensor4;
-int sensor5;
+const int sensor1 = 15;
+const int sensor2 = 13;
+const int sensor3 = 4;
+const int sensor4 = 14;
+const int sensor5 = 25;
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(5, INPUT);
   Serial.begin(115200);
 
 }
@@ -13,17 +14,30 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  sensor1 = analogRead(4);
-  sensor2 = analogRead(2);
-  // sensor3 = analogRead(4);
-  // sensor4 = analogRead(4);
-  // sensor5 = analogRead(4);
 
-  Serial.print("1: ");
-  Serial.print(sensor1);
-  Serial.print(" || 2: ");
-  Serial.println(sensor2);
-// + " || 3: " + sensor3 + " || 4: " + sensor4 + " || 5: " + sensor5
+  if (digitalRead(5) == LOW){
+  unsigned long start = millis();
+
+    while (millis() - start <= 2000){
+
+      Serial.print("1: ");
+      Serial.print(analogRead(sensor1));
+      Serial.print(" || 2: ");
+      Serial.print(analogRead(sensor2));
+      Serial.print(" || 3: ");
+      Serial.print(analogRead(sensor3));
+      Serial.print(" || 4: ");
+      Serial.print(analogRead(sensor4));
+      Serial.print(" || 5: ");
+      Serial.print(analogRead(sensor5));
+      delay (50);
+    }
+      Serial.println("Done");
+
+  }
+
+
+
 
 
 }
