@@ -11,13 +11,12 @@ function Stars({ count = 20 }) {
   const stars = useRef([]);
 
   useEffect(() => {
-    // Initialize stars with random positions, directions, and speeds
     stars.current = Array.from({ length: count }).map(() => {
       const angle = getRandom(0, 2 * Math.PI);
       return {
         x: getRandom(0, 100),
         y: getRandom(0, 100),
-        dx: Math.cos(angle) * getRandom(0.02, 0.08), // speed in % per frame
+        dx: Math.cos(angle) * getRandom(0.02, 0.08), 
         dy: Math.sin(angle) * getRandom(0.02, 0.08),
       };
     });
