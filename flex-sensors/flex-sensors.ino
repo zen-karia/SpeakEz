@@ -1,8 +1,8 @@
-const int sensor1 = 15;
-const int sensor2 = 13;
-const int sensor3 = 4;
-const int sensor4 = 14;
-const int sensor5 = 25;
+const int thumb = 15;
+const int pointer = 13;
+const int middle = 4;
+const int ring = 14;
+const int pinky = 25;
 char currentLetter = 'A'; 
 
 void setup() {
@@ -21,11 +21,11 @@ void loop() {
       static unsigned long lastSent = 0;
       if (millis() - lastSent >= 50) { // 20Hz
         lastSent = millis();
-        Serial.print(analogRead(sensor1)); Serial.print(",");
-        Serial.print(analogRead(sensor2)); Serial.print(",");
-        Serial.print(analogRead(sensor3)); Serial.print(",");
-        Serial.print(analogRead(sensor4)); Serial.print(",");
-        Serial.println(analogRead(sensor5));
+        Serial.print(analogRead(thumb)); Serial.print(",");
+        Serial.print(analogRead(pointer)); Serial.print(",");
+        Serial.print(analogRead(middle)); Serial.print(",");
+        Serial.print(analogRead(ring)); Serial.print(",");
+        Serial.println(analogRead(pinky));
       }
     }
 
