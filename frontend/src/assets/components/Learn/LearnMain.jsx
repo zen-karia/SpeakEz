@@ -8,7 +8,7 @@ const videoConstraints = {
 };
 
 // AVAILABLE LETTERS SET - CHANGE THIS TO CUSTOMIZE WHICH LETTERS TO PRACTICE
-const AVAILABLE_LETTERS = ['B', 'W'];
+const AVAILABLE_LETTERS = ['B', 'W', 'A', 'R', 'K', 'J'];
 
 // You can customize this set to practice specific letters:
 // Examples:
@@ -25,10 +25,8 @@ const LearnMain = () => {
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
   const [feedback, setFeedback] = useState('');
-  const [score, setScore] = useState(0);
-  const [totalAttempts, setTotalAttempts] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [lettersCompleted, setLettersCompleted] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Function to get a random letter from the available set
   const getRandomLetter = () => {
@@ -59,10 +57,8 @@ const LearnMain = () => {
         setConfidence(result.confidence);
         
         // Check if prediction matches current letter
-        if (result.prediction === currentLetter && result.confidence > 0.7) {
+        if (result.prediction === currentLetter && result.confidence > 0.5) {
           setFeedback('Correct! 🎉');
-          setScore(prev => prev + 1);
-          setTotalAttempts(prev => prev + 1);
           setLettersCompleted(prev => prev + 1);
           
           // Get next random letter after a short delay
@@ -73,7 +69,6 @@ const LearnMain = () => {
             setPrediction(null);
           }, 1500);
         } else {
-          setTotalAttempts(prev => prev + 1);
           setFeedback(`Try again! You showed: ${result.prediction}`);
         }
       } else {
@@ -102,8 +97,6 @@ const LearnMain = () => {
     setWebcamActive(true);
     setIsLearning(true);
     setCurrentLetter(getRandomLetter()); // Start with a random letter
-    setScore(0);
-    setTotalAttempts(0);
     setLettersCompleted(0);
     setFeedback('');
     setPrediction(null);
@@ -118,8 +111,6 @@ const LearnMain = () => {
 
   const resetLearning = () => {
     setCurrentLetter(getRandomLetter());
-    setScore(0);
-    setTotalAttempts(0);
     setLettersCompleted(0);
     setFeedback('');
     setPrediction(null);
@@ -153,14 +144,10 @@ const LearnMain = () => {
         ) : (
           <div className="w-full">
             {/* Progress and Stats */}
-            <div className="flex justify-between items-center mb-4 p-4 bg-gray-100 rounded-lg">
+            <div className="flex justify-center items-center mb-4 p-4 bg-gray-100 rounded-lg">
               <div>
                 <span className="font-semibold">Letters Completed: </span>
                 <span>{lettersCompleted}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Score: </span>
-                <span>{score} / {totalAttempts || 1}</span>
               </div>
             </div>
 
