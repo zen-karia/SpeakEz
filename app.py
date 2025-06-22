@@ -25,6 +25,8 @@ esp32_scaler = None
 esp32_label_encoder = None
 
 latest_esp32_prediction = None
+esp32_last_letter = None
+esp32_letter_count = 0
 
 def load_esp32_models():
     """Load CNN model for ESP32 sensor data"""
@@ -376,18 +378,34 @@ def esp32_predict():
             'detected': detected
         }
         
+        global esp32_last_letter, esp32_letter_count
         if detected:
-            audio_file = get_audio_file_path(prediction)
+            if prediction == esp32_last_letter:
+                esp32_letter_count += 1
+            else:
+                esp32_last_letter = prediction
+                esp32_letter_count = 1
+
+            if esp32_letter_count == 3:
+                audio_file = get_audio_file_path(prediction)
+                play_audio = True
+                esp32_letter_count = 0  # Reset after playing audio
+            else:
+                audio_file = None
+                play_audio = False
+
             response.update({
                 'prediction': prediction,
                 'confidence': float(confidence),
-                'audio_file': audio_file
+                'audio_file': audio_file,
+                'play_audio': play_audio
             })
         else:
             response.update({
                 'prediction': None,
                 'confidence': 0.0,
-                'audio_file': None
+                'audio_file': None,
+                'play_audio': False
             })
         
         print(f"ESP32 Prediction: {response}")
