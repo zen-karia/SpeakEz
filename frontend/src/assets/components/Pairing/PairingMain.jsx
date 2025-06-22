@@ -9,6 +9,7 @@ const PairingMain = () => {
   const [lastReceived, setLastReceived] = useState(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [connectionMessage, setConnectionMessage] = useState('');
+  const [lastESP32DataTime, setLastESP32DataTime] = useState(null);
   
   const audioRef = useRef(null);
   const intervalRef = useRef(null);
@@ -93,15 +94,13 @@ const PairingMain = () => {
         const statusResponse = await fetch('http://localhost:5000/esp32/status');
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
-          
-          // Update connection status based on ESP32 model status
-          if (statusData.esp32_model_loaded) {
-            setConnectionMessage('ESP32 CNN Model Loaded - Ready for ASL Recognition');
-          } else {
-            setConnectionMessage('ESP32 Connected - Using Placeholder Model');
-          }
+          // Do not update connectionMessage here anymore
+          // if (statusData.esp32_model_loaded) {
+          //   setConnectionMessage('ESP32 CNN Model Loaded - Ready for ASL Recognition');
+          // } else {
+          //   setConnectionMessage('ESP32 Connected - Using Placeholder Model');
+          // }
         }
-        
       } catch (error) {
         console.error('Data monitoring error:', error);
         setConnectionMessage('Connection lost. Trying to reconnect...');
@@ -141,6 +140,7 @@ const PairingMain = () => {
       
       // Update connection message to show successful detection
       setConnectionMessage(`Letter ${result.prediction} detected! Audio played.`);
+      setLastESP32DataTime(Date.now());
     } else {
       console.log('❌ No letter detected in this data');
       setCurrentLetter(null);
@@ -207,6 +207,37 @@ const PairingMain = () => {
       stopPairingMode();
     };
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isConnected) {
+        if (lastESP32DataTime && Date.now() - lastESP32DataTime < 10000) {
+          setConnectionStatus('Connected to ESP32');
+          setConnectionMessage('Connection Successful! 🎉');
+        } else {
+          setConnectionStatus('Waiting for ESP32 data...');
+          setConnectionMessage('No recent data from ESP32. Please check your device.');
+        }
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isConnected, lastESP32DataTime]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch('http://localhost:5000/esp32/latest');
+        if (res.ok) {
+          const data = await res.json();
+          processESP32Prediction(data);
+        }
+      } catch (e) {
+        // Optionally handle error
+      }
+    }, 2000);
+    return () => clearInterval(poll);
+  }, [isConnected]);
 
   return (
     <div className="p-8 flex flex-col items-center">

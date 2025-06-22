@@ -10,6 +10,7 @@ import tensorflow as tf
 import pickle
 from math import acos, degrees
 import time
+import json
 
 # --- Feature helpers --------------------------------------------------------
 
@@ -227,6 +228,59 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
     print("✅ Test completed")
+
+if __name__ == "__main__":
+    main()
+
+MODEL_PATH   = "glove_cnn_model.keras"
+CLASSES_PATH = "classes.json"
+
+# the five flex sensors, in order
+FINGER_NAMES = ["thumb", "pointer", "middle", "ring", "pinky"]
+N_SENSORS    = len(FINGER_NAMES)
+
+def load_resources():
+    model = tf.keras.models.load_model(MODEL_PATH)
+    with open(CLASSES_PATH, "r") as f:
+        classes = json.load(f)
+    return model, classes
+
+def predict_from_input(model, classes, vals):
+    """
+    vals: list of 5 floats, in the same order as FINGER_NAMES
+    """
+    # shape (1, 5, 1)
+    arr = np.array(vals, dtype=np.float32)[np.newaxis, ..., np.newaxis]
+    probs = model.predict(arr, verbose=0)[0]
+    idx   = np.argmax(probs)
+    return classes[idx], probs[idx]
+
+def main():
+    print("🔎 Speakez Glove Predictor")
+    model, classes = load_resources()
+
+    print(f"Expecting {N_SENSORS} comma-separated flex readings in this order:")
+    print("  " + ", ".join(FINGER_NAMES))
+    print("Type 'quit' to exit.\n")
+
+    while True:
+        line = input("Enter sensors: ").strip()
+        if line.lower() in ("quit", "exit"):
+            break
+
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) != N_SENSORS:
+            print(f"⚠️  Got {len(parts)} values; need {N_SENSORS}. Try again.\n")
+            continue
+
+        try:
+            vals = [float(p) for p in parts]
+        except ValueError:
+            print("⚠️  Could not parse all inputs as floats. Re-enter.\n")
+            continue
+
+        letter, conf = predict_from_input(model, classes, vals)
+        print(f"→ Prediction: {letter}  (confidence {conf:.2%})\n")
 
 if __name__ == "__main__":
     main() 

@@ -24,26 +24,27 @@ esp32_cnn_model = None
 esp32_scaler = None
 esp32_label_encoder = None
 
+latest_esp32_prediction = None
+
 def load_esp32_models():
     """Load CNN model for ESP32 sensor data"""
     global esp32_cnn_model, esp32_scaler, esp32_label_encoder
     
     try:
-        # Load your ESP32 CNN model here
         esp32_cnn_model = tf.keras.models.load_model("glove_cnn_model.keras")
+        # Uncomment and use scaler if needed
         # esp32_scaler = pickle.load(open("esp32_scaler.pkl", "rb"))
-        # esp32_label_encoder = pickle.load(open("esp32_label_encoder.pkl", "rb"))
+        esp32_label_encoder = pickle.load(open("label_encoder_v3.pkl", "rb"))
         print("✅ ESP32 CNN model (glove_cnn_model.keras) loaded successfully!")
-        print("⚠️  Note: Using default preprocessing (no scaler/label encoder)")
-        print("📝 If you have scaler and label encoder files, uncomment the lines above")
+        print("✅ ESP32 label encoder (label_encoder_v3.pkl) loaded successfully!")
     except Exception as e:
-        print(f"⚠️  ESP32 model loading failed: {e}")
+        print(f"⚠️  ESP32 model or label encoder loading failed: {e}")
         print("Using placeholder prediction function")
 
 def predict_esp32_letter(sensor_data):
     """
     Predict ASL letter from ESP32 sensor data using CNN
-    sensor_data: list of 5 sensor values
+    sensor_data: list of 5 sensor values (expected range: 0-4095, raw from ESP32)
     Returns: (prediction, confidence, detected)
     """
     try:
@@ -53,41 +54,23 @@ def predict_esp32_letter(sensor_data):
             return None, 0.0, False
         
         # Convert to numpy array and reshape for CNN
-        sensor_array = np.array(sensor_data, dtype=np.float32).reshape(1, -1)
+        # Expecting raw sensor values in the range 0-4095
+        sensor_array = np.array(sensor_data, dtype=np.float32).reshape(1, 5, 1)
         
         # If you have a trained CNN model, use it here
         if esp32_cnn_model is not None:
-            print(f"🔍 Using glove_cnn_model.keras for prediction with sensor data: {sensor_data}")
-            
-            # Normalize the data (if scaler is available)
-            if esp32_scaler is not None:
-                sensor_scaled = esp32_scaler.transform(sensor_array)
-                print(f"📊 Data normalized using scaler")
-            else:
-                # Use raw data or basic normalization
-                sensor_scaled = sensor_array / 1024.0  # Normalize to 0-1 range
-                print(f"📊 Data normalized to 0-1 range (no scaler)")
-            
-            # Make prediction
-            prediction = esp32_cnn_model.predict(sensor_scaled, verbose=0)
-            print(f"🎯 Raw CNN output: {prediction}")
-            
-            # Get letter and confidence
+            # Pass raw sensor_array directly to the model (no normalization)
+            prediction = esp32_cnn_model.predict(sensor_array, verbose=0)
             if esp32_label_encoder is not None:
                 letter = esp32_label_encoder.inverse_transform([np.argmax(prediction)])[0]
                 confidence = np.max(prediction)
-                print(f"🎯 Using label encoder for letter mapping")
             else:
-                # Map prediction index to letter (assuming 0-25 for A-Z)
                 predicted_index = np.argmax(prediction)
                 if predicted_index < 26:
-                    letter = chr(65 + predicted_index)  # Convert 0-25 to A-Z
+                    letter = chr(65 + predicted_index)
                 else:
-                    letter = 'X'  # Unknown letter
+                    letter = 'X'
                 confidence = np.max(prediction)
-                print(f"🎯 Direct index mapping: {predicted_index} -> {letter}")
-            
-            print(f"🎯 Final Prediction: {letter} (confidence: {confidence:.3f})")
             return letter, confidence, True
         else:
             # Placeholder prediction function - replace with your actual logic
@@ -352,12 +335,36 @@ def esp32_predict():
             sensor_data = data['sensors']
         elif 'data' in data:
             sensor_data = data['data']
+        elif all(k in data for k in ['thumb', 'pointer', 'middle', 'ring', 'pinky']):
+            # If ESP32 sends JSON with keys: pinky, ring, middle, pointer, thumb
+            # Extract and reorder to: thumb, pointer, middle, ring, pinky
+            try:
+                sensor_data = [
+                    float(data['thumb']),    # thumb
+                    float(data['pointer']), # pointer
+                    float(data['middle']),  # middle
+                    float(data['ring']),    # ring
+                    float(data['pinky'])    # pinky
+                ]
+            except (ValueError, TypeError) as e:
+                return jsonify({'error': f'Invalid sensor value type: {e}'}), 400
         else:
-            return jsonify({'error': 'No sensor data found. Expected: sensor_values, sensors, or data'}), 400
+            return jsonify({'error': 'No sensor data found or payload format is incorrect. Expected one of: `sensor_values`, `sensors`, `data`, OR a JSON object with keys `thumb`, `pointer`, `middle`, `ring`, `pinky`.'}), 400
         
         # Validate sensor data
         if not isinstance(sensor_data, list) or len(sensor_data) != 5:
             return jsonify({'error': f'Expected 5 sensor values, got {len(sensor_data) if isinstance(sensor_data, list) else "non-list"}'}), 400
+        
+        # Reorder sensor_data if it is in [pinky, ring, middle, index, thumb] order
+        if isinstance(sensor_data, list) and len(sensor_data) == 5:
+            # Assume incoming order is [pinky, ring, middle, index, thumb]
+            sensor_data = [
+                sensor_data[0],  # thumb
+                sensor_data[1],  # index
+                sensor_data[2],  # middle
+                sensor_data[3],  # ring
+                sensor_data[4],  # pinky
+            ]
         
         # Make prediction
         prediction, confidence, detected = predict_esp32_letter(sensor_data)
@@ -384,6 +391,8 @@ def esp32_predict():
             })
         
         print(f"ESP32 Prediction: {response}")
+        global latest_esp32_prediction
+        latest_esp32_prediction = response
         return jsonify(response)
         
     except Exception as e:
@@ -405,6 +414,14 @@ def esp32_status():
             'frequency': '1 per second'
         }
     })
+
+@app.route('/esp32/latest', methods=['GET'])
+def esp32_latest():
+    global latest_esp32_prediction
+    if latest_esp32_prediction is not None:
+        return jsonify(latest_esp32_prediction)
+    else:
+        return jsonify({'detected': False}), 200
 
 @app.route('/health', methods=['GET'])
 def health():
