@@ -19,12 +19,12 @@ const PairingMain = () => {
     'A': '/audio/A.mp3', 'B': '/audio/B.mp3', 'C': '/audio/C.mp3',
     'D': '/audio/D.mp3', 'E': '/audio/E.mp3', 'F': '/audio/F.mp3',
     'G': '/audio/G.mp3', 'H': '/audio/H.mp3', 'I': '/audio/I.mp3',
-    'J': '/audio/J.mp3', 'K': '/audio/K.mp3', 'L': '/audio/L.mp3',
-    'M': '/audio/M.mp3', 'N': '/audio/N.mp3', 'O': '/audio/O.mp3',
-    'P': '/audio/P.mp3', 'Q': '/audio/Q.mp3', 'R': '/audio/R.mp3',
-    'S': '/audio/S.mp3', 'T': '/audio/T.mp3', 'U': '/audio/U.mp3',
-    'V': '/audio/V.mp3', 'W': '/audio/W.mp3', 'X': '/audio/X.mp3',
-    'Y': '/audio/Y.mp3', 'Z': 'None'
+    'K': '/audio/K.mp3', 'L': '/audio/L.mp3', 'M': '/audio/M.mp3', 
+    'N': '/audio/N.mp3', 'O': '/audio/O.mp3', 'P': '/audio/P.mp3',
+    'Q': '/audio/Q.mp3', 'R': '/audio/R.mp3', 'S': '/audio/S.mp3',
+    'T': '/audio/T.mp3', 'U': '/audio/U.mp3', 'V': '/audio/V.mp3',
+    'W': '/audio/W.mp3', 'X': '/audio/X.mp3', 'Y': '/audio/Y.mp3',
+    'Z': 'None'
   };
 
   // Start ESP32 connection monitoring
