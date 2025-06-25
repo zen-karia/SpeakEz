@@ -2,12 +2,12 @@
 #include <HTTPClient.h>
 
 // Wi-Fi credentials
-const char* ssid = "Ishaan";
+const char* ssid = "SSID";
 
-const char* password = "14165563809";
+const char* password = "Password";
 
 // Flask server URL (change IP if needed)
-const char* serverURL = "http://192.168.68.107:5000/esp32/predict";
+const char* serverURL = "http://IP:5000/esp32/predict";
 
 // ADC1-compatible GPIO pins
 const int thumb   = 39;  // ADC1_CH3
