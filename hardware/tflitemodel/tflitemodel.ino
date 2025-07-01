@@ -11,13 +11,14 @@ const int middle  = 35;
 const int ring    = 32;  
 const int pinky   = 33;
 
-uint8_t flex [5];
 float raw [5];
+const char letters[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I','K', 'L', 'M', 'O', 'Q', 'W', 'Y'}; 
+int letter;
+float maxConfidence = 0.0;
 
-void runInference(uint8_t* flex) {
+int runInference(float* flex) {
 
     for (int i = 0; i < 5; i++) {
-       Serial.println("in input");
     if (!ModelSetInput(flex[i], i)) {
       Serial.println("Failed to set input!");
     }
@@ -25,17 +26,20 @@ void runInference(uint8_t* flex) {
 
     if (!ModelRunInference()) {
       Serial.println("inference failed");
-        return;
+        return -1;
     }
 
 
   for(int i = 0; i < 16; i++){
-    Serial.print("Output "); Serial.print(i); Serial.print(": ");
-    Serial.println(ModelGetOutput(i));
+
+    float val = ModelGetOutput(i);
+    if (ModelGetOutput(i) > maxConfidence){
+      maxConfidence = val;
+      letter = i;
+    }
   }
-
+  return (letter);
 }
-
 
 
 void setup() {
@@ -58,20 +62,17 @@ void loop() {
   // raw[2] = analogRead(middle);
   // raw[3] = analogRead(ring);
   // raw[4] = analogRead(pinky);
-  raw[0] = 0;
-  raw[1] = 0;
-  raw[2] = 0;
-  raw[3] = 0;
-  raw[4] = 0;
+  raw[0] = 9.0;
+  raw[1] = 81.0;
+  raw[2] = 64.0;
+  raw[3] = 6.0;
+  raw[4] = 0.0;
 
-  for (int i = 0; i < 5; i++){
-    float norm = map(raw[i], 0, 4095, 0, 255);
-    flex[i] = static_cast<int8_t>(norm);
-    Serial.print("flex: ");
-    Serial.println(flex[i]);
-  }
-  runInference(flex);
-  Serial.println("done!");
+  letter = runInference(raw);
+
+  Serial.print("Letter: ");
+  Serial.println(letters[letter]);
+
   delay(10000);
 
 }
