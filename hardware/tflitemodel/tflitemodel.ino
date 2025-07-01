@@ -1,6 +1,19 @@
 #include "glove_cnn.h"
 #include "MicroTFLite.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1331.h>
+#include <SPI.h>
 
+#define sclk 18
+#define mosi 23
+#define cs   17
+#define rst  5
+#define dc   16
+
+#define	GREEN           0x07E0
+#define WHITE           0xFFFF
+
+Adafruit_SSD1331 display = Adafruit_SSD1331(&SPI, cs, dc, rst);
 
 constexpr int tensorArenaSize = 60 * 1024;
 alignas(16) byte tensorArena[tensorArenaSize];
@@ -13,29 +26,30 @@ const int pinky   = 33;
 
 float raw [5];
 const char letters[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I','K', 'L', 'M', 'O', 'Q', 'W', 'Y'}; 
-int letter;
-float maxConfidence = 0.0;
 
 int runInference(float* flex) {
 
-    for (int i = 0; i < 5; i++) {
+  int letter = 0;
+  float maxConfidence = 0.0;
+
+  for (int i = 0; i < 5; i++) {
     if (!ModelSetInput(flex[i], i)) {
       Serial.println("Failed to set input!");
     }
-    }
+  }
 
-    if (!ModelRunInference()) {
-      Serial.println("inference failed");
-        return -1;
-    }
+  if (!ModelRunInference()) {
+    Serial.println("inference failed");
+    return -1;
+  }
 
 
-  for(int i = 0; i < 16; i++){
+  for(int j = 0; j < 16; j++){
 
-    float val = ModelGetOutput(i);
-    if (ModelGetOutput(i) > maxConfidence){
+    float val = ModelGetOutput(j);
+    if (ModelGetOutput(j) > maxConfidence){
       maxConfidence = val;
-      letter = i;
+      letter = j;
     }
   }
   return (letter);
@@ -48,6 +62,8 @@ void setup() {
 
   delay(1000);
 
+  display.begin();
+
   if (!ModelInit(glove_cnn_int8_tflite, tensorArena, tensorArenaSize)) {
     Serial.println("Model initialization failed!");
     while (true) {;}
@@ -57,23 +73,26 @@ void setup() {
 
 void loop() {
 
-  // raw[0] = analogRead(thumb);
-  // raw[1] = analogRead(pointer);
-  // raw[2] = analogRead(middle);
-  // raw[3] = analogRead(ring);
-  // raw[4] = analogRead(pinky);
-  raw[0] = 9.0;
-  raw[1] = 81.0;
-  raw[2] = 64.0;
-  raw[3] = 6.0;
-  raw[4] = 0.0;
+  raw[0] = analogRead(thumb);
+  raw[1] = analogRead(pointer);
+  raw[2] = analogRead(middle);
+  raw[3] = analogRead(ring);
+  raw[4] = analogRead(pinky);
 
-  letter = runInference(raw);
+  
+  int letter = runInference(raw);
 
   Serial.print("Letter: ");
   Serial.println(letters[letter]);
 
-  delay(10000);
+  display.fillScreen(WHITE);
+
+  display.setTextColor(GREEN);
+  display.setTextSize(1);
+  display.setCursor(6, 15);
+  display.print(letters[letter]);
+
+  delay(2000);
 
 }
 
