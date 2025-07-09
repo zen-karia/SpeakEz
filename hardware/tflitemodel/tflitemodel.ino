@@ -1,21 +1,7 @@
-#include "glove_cnn.h"
 #include "MicroTFLite.h"
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1331.h>
-#include <SPI.h>
+#include "LittleFS.h"
 
-#define sclk 18
-#define mosi 23
-#define cs   17
-#define rst  5
-#define dc   16
-
-#define	GREEN           0x07E0
-#define WHITE           0xFFFF
-
-Adafruit_SSD1331 display = Adafruit_SSD1331(&SPI, cs, dc, rst);
-
-constexpr int tensorArenaSize = 60 * 1024;
+constexpr int tensorArenaSize = 20 * 1024;
 alignas(16) byte tensorArena[tensorArenaSize];
 
 const int thumb   = 39;  
@@ -26,6 +12,11 @@ const int pinky   = 33;
 
 float raw [5];
 const char letters[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I','K', 'L', 'M', 'O', 'Q', 'W', 'Y'}; 
+
+uint8_t *loadedModel;
+size_t modelSize;
+
+void loadModel(void);
 
 int runInference(float* flex) {
 
@@ -60,11 +51,20 @@ void setup() {
 
   Serial.begin(115200);
 
-  delay(1000);
+  delay(6000);
+  Serial.println("setup before");
 
-  display.begin();
 
-  if (!ModelInit(glove_cnn_int8_tflite, tensorArena, tensorArenaSize)) {
+  if (!LittleFS.begin()){
+    Serial.println("Error mounting LittleFs");
+    return;
+  }
+  Serial.println("setup");
+
+  loadModel();
+
+
+  if (!ModelInit(loadedModel, tensorArena, tensorArenaSize)) {
     Serial.println("Model initialization failed!");
     while (true) {;}
   }
@@ -73,27 +73,52 @@ void setup() {
 
 void loop() {
 
-  raw[0] = analogRead(thumb);
-  raw[1] = analogRead(pointer);
-  raw[2] = analogRead(middle);
-  raw[3] = analogRead(ring);
-  raw[4] = analogRead(pinky);
+  raw[0] = 259.0;
+  raw[1] = 0.0;
+  raw[2] = 4095.0;
+  raw[3] = 1937.0;
+  raw[4] = 4095.0;
 
-  
-  int letter = runInference(raw);
-
+ int letter = runInference(raw);
   Serial.print("Letter: ");
   Serial.println(letters[letter]);
 
-  display.fillScreen(WHITE);
-
-  display.setTextColor(GREEN);
-  display.setTextSize(1);
-  display.setCursor(6, 15);
-  display.print(letters[letter]);
-
   delay(2000);
 
+}
+
+void loadModel(){
+
+  Serial.println("In read");
+  File file = LittleFS.open("/glove_cnn.tflite", "r");
+
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  if (file.size() == 0){
+    Serial.println("file size 0");
+      file.close();
+    return;
+  }
+
+
+  modelSize = file.size();
+  Serial.print("Model Size: ");
+  Serial.println(modelSize);
+
+  loadedModel = (uint8_t*) malloc(modelSize);
+  if (!loadedModel) {
+    Serial.println("Failed to allocate memory for model");
+      file.close();
+    return;
+  }
+  Serial.println("before byte");
+  file.readBytes((char*)loadedModel, modelSize);
+  Serial.println("Finished read");
+
+  file.close();
 }
 
 
