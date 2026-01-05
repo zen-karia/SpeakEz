@@ -3,14 +3,12 @@ import time
 import pandas as pd
 import os
 
-# === CONFIGURATION ===
-COM_PORT = 'COM3'             # Replace with your actual port
+COM_PORT = 'COM3'             
 BAUD_RATE = 115200
 DURATION = 2.0                # seconds
 SAMPLE_RATE = 20             # Hz
 DATA_FILE = 'all_data.csv'
 
-# === SETUP ===
 ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=1)
 print(f"[Connected] Listening on {COM_PORT} at {BAUD_RATE} baud.")
 
@@ -31,7 +29,6 @@ else:
         f.write('thumb,pointer,middle,ring,pinky,label,sample_id\n')
     sample_id = 0
 
-# === MAIN LOOP: Wait for data stream repeatedly ===
 try:
     print(f"Ready to record letter '{letter}'. Press the button on your glove to start recording.")
 

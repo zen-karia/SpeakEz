@@ -1,5 +1,13 @@
+#include <WiFi.h>
+#include <WebServer.h>
 #include "MicroTFLite.h"
 #include "LittleFS.h"
+
+
+const char* ssid = "wifi";
+const char* password = "pass";
+
+WebServer server(80);
 
 constexpr int tensorArenaSize = 20 * 1024;
 alignas(16) byte tensorArena[tensorArenaSize];
@@ -17,6 +25,34 @@ uint8_t *loadedModel;
 size_t modelSize;
 
 void loadModel(void);
+
+void handleModelUpload() {
+  HTTPUpload& upload = server.upload();
+
+  static File uploadFile;
+
+  if (upload.status == UPLOAD_FILE_START) {
+
+    Serial.println("OTA model upload started");
+    uploadFile = LittleFS.open("/glove_cnn.tflite", "w");
+
+  }
+  else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (uploadFile) {
+      uploadFile.write(upload.buf, upload.currentSize);
+    }
+  }
+
+  else if (upload.status == UPLOAD_FILE_END) {
+    if (uploadFile) {
+      uploadFile.close();
+      Serial.println("OTA model upload finished");
+      server.send(200, "text/plain", "Model uploaded. Rebooting...");
+      delay(1000);
+      ESP.restart();
+    }
+  }
+}
 
 int runInference(float* flex) {
 
@@ -59,7 +95,28 @@ void setup() {
     Serial.println("Error mounting LittleFs");
     return;
   }
-  Serial.println("setup");
+
+  WiFi.begin(ssid, password);
+
+  Serial.print("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConnected!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  server.on(
+    "/upload",
+    HTTP_POST,
+    []() {},
+    handleModelUpload
+  );
+  server.begin();
+  Serial.println("OTA server started");
 
   loadModel();
 
@@ -72,6 +129,8 @@ void setup() {
 }
 
 void loop() {
+
+  server.handleClient();
 
   raw[0] = analogRead(thumb);
   raw[1] = analogRead(pointer);
@@ -89,7 +148,6 @@ void loop() {
 
 void loadModel(){
 
-  Serial.println("In read");
   File file = LittleFS.open("/glove_cnn.tflite", "r");
 
   if(!file){
@@ -114,9 +172,8 @@ void loadModel(){
       file.close();
     return;
   }
-  Serial.println("before byte");
+  
   file.readBytes((char*)loadedModel, modelSize);
-  Serial.println("Finished read");
 
   file.close();
 }
