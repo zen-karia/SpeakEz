@@ -73,11 +73,11 @@ void setup() {
 
 void loop() {
 
-  raw[0] = 259.0;
-  raw[1] = 0.0;
-  raw[2] = 4095.0;
-  raw[3] = 1937.0;
-  raw[4] = 4095.0;
+  raw[0] = analogRead(thumb);
+  raw[1] = analogRead(pointer);
+  raw[2] = analogRead(middle);
+  raw[3] = analogRead(ring);
+  raw[4] = analogRead(pinky);
 
  int letter = runInference(raw);
   Serial.print("Letter: ");
